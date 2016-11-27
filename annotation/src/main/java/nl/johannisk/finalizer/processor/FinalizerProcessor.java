@@ -17,7 +17,6 @@ import java.util.Set;
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
 public class FinalizerProcessor extends AbstractProcessor {
     private Trees trees;
-    private TreeTranslator visitor;
     private JavacProcessingEnvironment javacProcessingEnvironment;
 
     @Override
