@@ -27,7 +27,7 @@ public class FinalizerTranslator extends TreeTranslator {
         super.visitVarDef(variableDeclaration);
         if (    !isMutableVarAnnotation(variableDeclaration.getModifiers()) &&
                 !isAlreadyFinal(variableDeclaration.getModifiers()) &&
-                !isNotVolatile(variableDeclaration.getModifiers()) &&
+                !isVolatile(variableDeclaration.getModifiers()) &&
                 visitVarDefinitions) {
             JCTree.JCModifiers modifiers = treeMaker.Modifiers(variableDeclaration.mods.flags + 16);
             variableDeclaration.mods = modifiers;
@@ -47,7 +47,7 @@ public class FinalizerTranslator extends TreeTranslator {
         return modifiers.toString().contains("final");
     }
 
-    private boolean isNotVolatile(JCTree.JCModifiers modifiers) {
+    private boolean isVolatile(JCTree.JCModifiers modifiers) {
         return modifiers.toString().contains("volatile");
     }
 }

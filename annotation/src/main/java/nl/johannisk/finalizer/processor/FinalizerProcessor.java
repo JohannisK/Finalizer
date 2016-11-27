@@ -36,7 +36,7 @@ public class FinalizerProcessor extends AbstractProcessor {
                 tree.accept(new FinalizerTranslator(treeMaker));
             });
         }
-        return true;
+        return false;
     }
 
 }
