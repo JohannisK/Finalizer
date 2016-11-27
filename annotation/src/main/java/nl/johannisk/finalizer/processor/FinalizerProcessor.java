@@ -18,23 +18,23 @@ import java.util.Set;
 public class FinalizerProcessor extends AbstractProcessor {
     private Trees trees;
     private TreeTranslator visitor;
+    private JavacProcessingEnvironment javacProcessingEnvironment;
 
     @Override
     public void init(ProcessingEnvironment processingEnvironment) {
         super.init(processingEnvironment);
-        JavacProcessingEnvironment javacProcessingEnvironment = (JavacProcessingEnvironment)processingEnvironment;
+        javacProcessingEnvironment = (JavacProcessingEnvironment)processingEnvironment;
         this.trees = Trees.instance(processingEnvironment);
-        TreeMaker treeMaker = TreeMaker.instance(javacProcessingEnvironment.getContext());
-        visitor = new FinalizerTranslator(treeMaker);
     }
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnvironment) {
         if (!roundEnvironment.processingOver()) {
             Set<? extends Element> elements = roundEnvironment.getRootElements();
+            TreeMaker treeMaker = TreeMaker.instance(javacProcessingEnvironment.getContext());
             elements.forEach(element -> {
                 JCTree tree = (JCTree) trees.getTree(element);
-                tree.accept(visitor);
+                tree.accept(new FinalizerTranslator(treeMaker));
             });
         }
         return true;
