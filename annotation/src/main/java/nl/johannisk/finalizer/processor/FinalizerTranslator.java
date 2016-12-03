@@ -1,53 +1,70 @@
 package nl.johannisk.finalizer.processor;
 
-import com.sun.tools.javac.tree.*;
+import com.sun.tools.javac.code.Flags;
+import com.sun.tools.javac.tree.TreeMaker;
+import com.sun.tools.javac.tree.TreeTranslator;
+import com.sun.tools.javac.tree.JCTree;
 
 /**
- * Created by johankragt on 25/11/2016.
+ * Visitor for {@link nl.johannisk.finalizer.annotation.FinalizeVars} and {@link nl.johannisk.finalizer.annotation.MutableVar} annotataions.
+ * Variables in Types annotated with {@link nl.johannisk.finalizer.annotation.FinalizeVars} are amended with the final modifier
+ * unless annotated with the {@link nl.johannisk.finalizer.annotation.MutableVar} annotation or if they are already volatile.
  */
+
 public class FinalizerTranslator extends TreeTranslator {
 
-    final TreeMaker treeMaker;
-    boolean visitVarDefinitions = false;
+    private final TreeMaker treeMaker;
+    private boolean shouldVisitVarDefinitions = false;
 
-    public FinalizerTranslator (final TreeMaker treeMaker) {
+    /**
+     * Initialises the FinalTranslator with a {@link TreeMaker}.
+     * @param treeMaker a TreeMaker
+     */
+    public FinalizerTranslator(final TreeMaker treeMaker) {
         this.treeMaker = treeMaker;
     }
 
+    /**
+     * Visits the class definition and checks if the (@link {@link nl.johannisk.finalizer.annotation.FinalizeVars} annotation is present.
+     * @param classDeclaration a class declaration
+     */
     @Override
-    public void visitClassDef(JCTree.JCClassDecl var1) {
-        if(isFinalizeVarsAnnotation(var1.getModifiers())) {
-            visitVarDefinitions = true;
+    public void visitClassDef(final JCTree.JCClassDecl classDeclaration) {
+        if (isFinalizeVarsAnnotation(classDeclaration.getModifiers())) {
+            shouldVisitVarDefinitions = true;
         }
-        super.visitClassDef(var1);
+        super.visitClassDef(classDeclaration);
     }
 
+    /**
+     * Visits the variable definitions and finalises it unless the {@link nl.johannisk.finalizer.annotation.MutableVar} annotation is present.
+     * @param variableDeclaration a variable declaration
+     */
     @Override
-    public void visitVarDef(JCTree.JCVariableDecl variableDeclaration) {
+    public void visitVarDef(final JCTree.JCVariableDecl variableDeclaration) {
         super.visitVarDef(variableDeclaration);
-        if (    !isMutableVarAnnotation(variableDeclaration.getModifiers()) &&
-                !isAlreadyFinal(variableDeclaration.getModifiers()) &&
-                !isVolatile(variableDeclaration.getModifiers()) &&
-                visitVarDefinitions) {
-            JCTree.JCModifiers modifiers = treeMaker.Modifiers(variableDeclaration.mods.flags + 16);
-            variableDeclaration.mods = modifiers;
-            this.result = variableDeclaration;
+        JCTree.JCModifiers modifiers = variableDeclaration.getModifiers();
+        if (shouldBeMadeFinal(variableDeclaration, modifiers)) {
+            variableDeclaration.mods = treeMaker.Modifiers(variableDeclaration.mods.flags | Flags.FINAL);
         }
+        this.result = variableDeclaration;
     }
 
-    private boolean isMutableVarAnnotation(JCTree.JCModifiers modifiers) {
+    private boolean shouldBeMadeFinal(final JCTree.JCVariableDecl variableDeclaration, final JCTree.JCModifiers modifiers) {
+        return  !isMutableVarAnnotation(modifiers) &&
+                !isVolatile(variableDeclaration.getModifiers()) &&
+                shouldVisitVarDefinitions;
+    }
+
+    private boolean isMutableVarAnnotation(final JCTree.JCModifiers modifiers) {
         return modifiers.toString().contains("@MutableVar()");
     }
 
-    private boolean isFinalizeVarsAnnotation(JCTree.JCModifiers modifiers) {
+    private boolean isFinalizeVarsAnnotation(final JCTree.JCModifiers modifiers) {
         return modifiers.toString().contains("@FinalizeVars()");
     }
 
-    private boolean isAlreadyFinal(JCTree.JCModifiers modifiers) {
-        return modifiers.toString().contains("final");
-    }
-
-    private boolean isVolatile(JCTree.JCModifiers modifiers) {
-        return modifiers.toString().contains("volatile");
+    private boolean isVolatile(final JCTree.JCModifiers modifiers) {
+        return (modifiers.flags & Flags.VOLATILE) > 0;
     }
 }

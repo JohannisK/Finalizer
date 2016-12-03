@@ -2,41 +2,64 @@ package nl.johannisk.finalizer.processor;
 
 import com.sun.source.util.Trees;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
-import com.sun.tools.javac.tree.*;
+import com.sun.tools.javac.tree.JCTree;
+import com.sun.tools.javac.tree.TreeMaker;
 
-import javax.annotation.processing.*;
-import javax.lang.model.element.*;
+import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.ProcessingEnvironment;
+import javax.annotation.processing.SupportedAnnotationTypes;
+import javax.annotation.processing.SupportedSourceVersion;
+import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.SourceVersion;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.TypeElement;
 import java.util.Set;
 
 /**
- * Created by johankragt on 25/11/2016.
+ * AnnotationProcesser for {@link nl.johannisk.finalizer.annotation.FinalizeVars} and {@link nl.johannisk.finalizer.annotation.MutableVar} annotations.
  */
 
-@SupportedAnnotationTypes("*")
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
+@SupportedAnnotationTypes({"nl.johannisk.finalizer.annotation.FinalizeVars",
+        "nl.johannisk.finalizer.annotation.MutableVar"})
 public class FinalizerProcessor extends AbstractProcessor {
     private Trees trees;
-    private JavacProcessingEnvironment javacProcessingEnvironment;
+    private TreeMaker treeMaker;
 
+    /**
+     * Initialize the FinalizerProcessor.
+     * @param processingEnvironment The Java processing environment
+     */
     @Override
-    public void init(ProcessingEnvironment processingEnvironment) {
+    public void init(final ProcessingEnvironment processingEnvironment) {
         super.init(processingEnvironment);
-        javacProcessingEnvironment = (JavacProcessingEnvironment)processingEnvironment;
+        final JavacProcessingEnvironment javacProcessingEnvironment =
+                (JavacProcessingEnvironment) processingEnvironment;
         this.trees = Trees.instance(processingEnvironment);
+        this.treeMaker =
+                TreeMaker.instance(javacProcessingEnvironment.getContext());
     }
 
+    /**
+     * Process the current processing round in the compilation process.
+     * @param annotations
+     * @param roundEnvironment The current processing round environment
+     */
     @Override
-    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnvironment) {
+    public boolean process(final Set<? extends TypeElement> annotations,
+                           final RoundEnvironment roundEnvironment) {
         if (!roundEnvironment.processingOver()) {
-            Set<? extends Element> elements = roundEnvironment.getRootElements();
-            TreeMaker treeMaker = TreeMaker.instance(javacProcessingEnvironment.getContext());
-            elements.forEach(element -> {
-                JCTree tree = (JCTree) trees.getTree(element);
-                tree.accept(new FinalizerTranslator(treeMaker));
-            });
+            processRootElements(roundEnvironment.getRootElements());
         }
         return false;
     }
 
+    private void processRootElements(final Set<? extends Element> rootElements) {
+        rootElements.forEach(this::processRootElement);
+    }
+
+    private void processRootElement(final Element element) {
+        JCTree tree = (JCTree) trees.getTree(element);
+        tree.accept(new FinalizerTranslator(treeMaker));
+    }
 }

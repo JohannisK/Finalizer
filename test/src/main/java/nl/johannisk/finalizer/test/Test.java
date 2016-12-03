@@ -9,38 +9,35 @@ import nl.johannisk.finalizer.annotation.MutableVar;
  */
 @FinalizeVars
 public class Test {
-    String t1 = "";
-    static String t2 = "";
-    @MutableVar String t3 = "";
-
 
     public static void main(String... args) {
         new Test();
-        new Test2();
+        new Test2("test");
         new Test3();
     }
 
-    public Test () {
-        t3 = "test";
+    @MutableVar String i = "test";
 
+    public Test () {
+        i = "test2";
+        System.out.println(i);
         for(@MutableVar int i = 0; i < 5; i++) {
-            t3 = "" + i;
         }
     }
 }
 
 @FinalizeVars
 class Test2{
-    String t1 = "";
-    static String t2 = "";
-    @MutableVar String t3 = "";
 
-    public Test2 () {
-        t3 = "test";
+    volatile int i4;
 
-        for(@MutableVar int i = 0; i < 5; i++) {
-            t3 = "" + i;
-        }
+    public Test2 (String t4) {
+       t4 = "dus";
+       i4 = 8;
+    }
+
+    public void dus(final int i2) {
+        i2 = 9;
     }
 }
 
@@ -51,6 +48,7 @@ class Test3{
 
     public Test3 () {
         t1 = "test";
+        t2 = "test";
 
         for(int i = 0; i < 5; i++) {
             t3 = "" + i;
